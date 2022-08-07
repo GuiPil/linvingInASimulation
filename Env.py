@@ -1,4 +1,5 @@
 from enum import IntEnum
+from operator import itemgetter
 
 
 class Grid:
@@ -11,17 +12,17 @@ class Grid:
         self.b_border = []
         self.l_border = []
         self.r_border = []
-        self.parcels = []
+        self.parcels = {}
 
     def build_grid(self):
         for x in range(self.height*self.length):
             parcel = Parcel()
-            self.parcels.append(parcel)
+            self.parcels.update({parcel.id: parcel})
 
         self.build_corner()
         self.build_border()
 
-        for x in self.parcels:
+        for x in self.parcels.values():
             x.build_next(self)
 
     def build_corner(self):
@@ -58,41 +59,49 @@ class Parcel:
         Parcel.p_id += 1
         self.next_to = []
         self.birb_on = []
-
     #function that build the list of neighbourg of each parcel
 
-    def build_next(self, grid):
+    def build_next(self, grid: Grid):
 
+        # We manage the corner first, to what next to add
         bl_corner = 1+(grid.length * (grid.height - 1))
         br_corner = grid.height * grid.length
 
         if self.id in grid.corners:
 
             if self.id == 1:
-                self.next_to.append(self.id+1)
-                self.next_to.append(self.id+grid.length)
+                self.next_to.extend(itemgetter(self.id+1, self.id+grid.length)(grid.parcels))
             elif self.id == grid.length:
-                self.next_to.append(self.id-1)
-                self.next_to.append(self.id+grid.length)
+                self.next_to.extend(itemgetter(self.id-1, self.id+grid.length)(grid.parcels))
             elif self.id == bl_corner:
-                self.next_to.append(self.id+1)
-                self.next_to.append(self.id-6)
+                self.next_to.extend(itemgetter(self.id+1, self.id-6)(grid.parcels))
             elif self.id == br_corner:
-                self.next_to.append(self.id-1)
-                self.next_to.append(self.id-6)
+                self.next_to.extend((itemgetter(self.id-1, self.id-6)(grid.parcels)))
 
+        # then the borders
         elif self.id in grid.t_border:
-            self.next_to.extend([self.id-1, self.id+1, self.id+grid.length])
+            self.next_to.extend(itemgetter(self.id-1, self.id+1, self.id+grid.length)(grid.parcels))
 
         elif self.id in grid.b_border:
-            self.next_to.extend([self.id+1, self.id-1, self.id-grid.length])
+            self.next_to.extend(itemgetter(self.id+1, self.id-1, self.id-grid.length)(grid.parcels))
 
         elif self.id in grid.l_border:
-            self.next_to.extend([self.id+1, self.id-grid.length, self.id+grid.length])
+            self.next_to.extend(itemgetter(self.id+1, self.id-grid.length, self.id+grid.length)(grid.parcels))
 
         elif self.id in grid.r_border:
-            self.next_to.extend([self.id-1, self.id-grid.length, self.id+grid.length])
+            self.next_to.extend(itemgetter(self.id-1, self.id-grid.length, self.id+grid.length)(grid.parcels))
 
+        # finally the rest
         else:
-            self.next_to.extend([self.id+1, self.id-1, self.id-grid.length, self.id+grid.length])
+            self.next_to.extend(itemgetter(self.id+1, self.id-1, self.id-grid.length, self.id+grid.length)(grid.parcels))
+
+
+def to_id(par: Parcel):
+    if len(par) >= 1:
+        ids = []
+        for p in par:
+            ids.append(p.id)
+        return ids
+    else:
+        return par.id
 
